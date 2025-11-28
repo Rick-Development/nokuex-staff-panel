@@ -4,39 +4,49 @@ namespace Modules\CustomerCare\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+// use Modules\CustomerCare\Database\Factories\SupportTicketFactory;
+
 use Modules\Core\Entities\Staff;
+use App\Models\User;
 
 class SupportTicket extends Model
 {
     use HasFactory;
 
+    protected $table = 'staff_support_tickets';
+
     protected $fillable = [
         'ticket_number',
-        'customer_id',
+        'user_id',
+        'assigned_to',
         'subject',
         'description',
-        'priority',
         'status',
-        'assigned_to',
-        'resolved_at'
+        'priority',
+        'category',
+        'first_response_at',
+        'resolved_at',
+        'closed_at',
     ];
 
     protected $casts = [
-        'resolved_at' => 'datetime'
+        'first_response_at' => 'datetime',
+        'resolved_at' => 'datetime',
+        'closed_at' => 'datetime',
     ];
 
-    public function customer()
+    public function user()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(User::class);
     }
 
-    public function assignedTo()
+    public function assignedStaff()
     {
         return $this->belongsTo(Staff::class, 'assigned_to');
     }
 
-    protected static function newFactory()
+    public function replies()
     {
-        return \Modules\CustomerCare\Database\factories\SupportTicketFactory::new();
+        return $this->hasMany(TicketReply::class, 'ticket_id');
     }
 }

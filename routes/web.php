@@ -17,10 +17,10 @@ Route::get('/dashboard', function () {
 
 // Include all module routes
 Route::group([], function () {
-    require base_path('Modules/Core/Routes/web.php');
-    require base_path('Modules/Chat/Routes/web.php');
-    require base_path('Modules/CustomerCare/Routes/web.php');
-    require base_path('Modules/Sales/Routes/web.php');
-    require base_path('Modules/Finance/Routes/web.php');
-    require base_path('Modules/Compliance/Routes/web.php');
+    require base_path('Modules/Core/routes/web.php');
+    require base_path('Modules/Chat/routes/web.php');
+    require base_path('Modules/CustomerCare/routes/web.php');
+    require base_path('Modules/Sales/routes/web.php');
+    require base_path('Modules/Finance/routes/web.php');
+    require base_path('Modules/Compliance/routes/web.php');
 });

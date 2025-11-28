@@ -4,38 +4,35 @@ namespace Modules\Chat\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Core\Entities\Staff;
 
 class ChatMessage extends Model
 {
     use HasFactory;
 
+    protected $table = 'chat_messages';
+
     protected $fillable = [
-        'channel_id',
         'sender_id',
+        'receiver_id',
+        'channel',
         'message',
-        'message_type',
-        'file_path'
+        'is_read',
+        'read_at',
     ];
 
-    public function channel(): BelongsTo
+    protected $casts = [
+        'is_read' => 'boolean',
+        'read_at' => 'datetime',
+    ];
+
+    public function sender()
     {
-        return $this->belongsTo(ChatChannel::class);
+        return $this->belongsTo(Staff::class, 'sender_id');
     }
 
-    public function sender(): BelongsTo
+    public function receiver()
     {
-        return $this->belongsTo(\Modules\Core\Entities\Staff::class, 'sender_id');
-    }
-
-    public function statuses(): HasMany
-    {
-        return $this->hasMany(MessageStatus::class);
-    }
-
-    protected static function newFactory()
-    {
-        return \Modules\Chat\Database\factories\ChatMessageFactory::new();
+        return $this->belongsTo(Staff::class, 'receiver_id');
     }
 }

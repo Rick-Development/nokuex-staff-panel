@@ -1,12 +1,13 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Modules\Chat\Http\Controllers\ChatController;
 
-Route::prefix('chat')->middleware(['auth:staff'])->group(function() {
-    Route::get('/', [ChatController::class, 'index'])->name('chat.index');
-    Route::get('/channel/{channelId}', [ChatController::class, 'showChannel'])->name('chat.channel.show');
-    Route::post('/channel/{channelId}/message', [ChatController::class, 'sendMessage'])->name('chat.message.send');
-    Route::post('/channel/create', [ChatController::class, 'createChannel'])->name('chat.channel.create');
-    Route::post('/channel/{channelId}/member', [ChatController::class, 'addMember'])->name('chat.channel.member.add');
+Route::group(['middleware' => ['web', 'auth:staff'], 'prefix' => 'staff/chat', 'as' => 'staff.chat.'], function () {
+    Route::get('/', [ChatController::class, 'index'])->name('index');
+    Route::post('/general/send', [ChatController::class, 'sendToGeneral'])->name('general.send');
+    Route::get('/general/messages', [ChatController::class, 'getGeneralMessages'])->name('general.messages');
+    Route::get('/{id}', [ChatController::class, 'show'])->name('show');
+    Route::get('/{id}/view', [ChatController::class, 'getChatView'])->name('view');
+    Route::post('/{id}/send', [ChatController::class, 'send'])->name('send');
+    Route::get('/{id}/messages', [ChatController::class, 'getMessages'])->name('messages');
 });

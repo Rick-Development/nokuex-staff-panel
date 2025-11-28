@@ -2,84 +2,188 @@
 
 namespace Modules\Chat\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
-use Modules\Chat\Entities\ChatChannel;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Modules\Chat\Entities\ChatMessage;
-use Modules\Chat\Entities\ChannelMember;
 use Modules\Core\Entities\Staff;
 
 class ChatController extends Controller
 {
+    private function getConversations($currentStaffId)
+    {
+        return Staff::where('id', '!=', $currentStaffId)
+            ->where('is_active', true)
+            ->get()
+            ->map(function ($staff) use ($currentStaffId) {
+                $lastMessage = ChatMessage::where(function($q) use ($currentStaffId, $staff) {
+                    $q->where('sender_id', $currentStaffId)->where('receiver_id', $staff->id);
+                })->orWhere(function($q) use ($currentStaffId, $staff) {
+                    $q->where('sender_id', $staff->id)->where('receiver_id', $currentStaffId);
+                })->latest()->first();
+                
+                $unreadCount = ChatMessage::where('sender_id', $staff->id)
+                    ->where('receiver_id', $currentStaffId)
+                    ->where('is_read', false)
+                    ->count();
+                
+                return [
+                    'staff' => $staff,
+                    'last_message' => $lastMessage,
+                    'unread_count' => $unreadCount,
+                ];
+            })
+            ->sortByDesc(function ($conversation) {
+                return $conversation['last_message'] ? $conversation['last_message']->created_at : null;
+            });
+    }
+
     public function index()
     {
-        $channels = ChatChannel::where('is_active', true)->get();
-        return view('chat::index', compact('channels'));
+        $currentStaffId = Auth::guard('staff')->id();
+        
+        // Get general channel messages (visible to all)
+        $generalMessages = ChatMessage::whereNotNull('channel')
+            ->where('channel', 'general')
+            ->with('sender')
+            ->orderBy('created_at', 'desc')
+            ->take(50)
+            ->get()
+            ->reverse();
+        
+        // Get 1-to-1 conversations
+        $conversations = $this->getConversations($currentStaffId);
+        
+        return view('chat::index', compact('conversations', 'generalMessages'));
     }
 
-    public function showChannel($channelId)
+    public function show($staffId)
     {
-        $channel = ChatChannel::with(['messages.staff', 'members.staff'])->findOrFail($channelId);
-        $messages = $channel->messages()->orderBy('created_at', 'asc')->get();
-        return view('chat::channel', compact('channel', 'messages'));
+        $currentStaffId = Auth::guard('staff')->id();
+        $otherStaff = Staff::findOrFail($staffId);
+        
+        // Get all conversations for the sidebar
+        $conversations = $this->getConversations($currentStaffId);
+        
+        // Mark messages as read
+        ChatMessage::where('sender_id', $staffId)
+            ->where('receiver_id', $currentStaffId)
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'read_at' => now()]);
+        
+        // Get messages
+        $messages = ChatMessage::where(function($q) use ($currentStaffId, $staffId) {
+            $q->where('sender_id', $currentStaffId)->where('receiver_id', $staffId);
+        })->orWhere(function($q) use ($currentStaffId, $staffId) {
+            $q->where('sender_id', $staffId)->where('receiver_id', $currentStaffId);
+        })->with(['sender', 'receiver'])
+          ->orderBy('created_at', 'asc')
+          ->get();
+        
+        return view('chat::show', compact('otherStaff', 'messages', 'conversations'));
     }
 
-    public function sendMessage(Request $request, $channelId)
+    public function send(Request $request, $staffId)
     {
         $request->validate([
-            'message' => 'required|string',
+            'message' => 'required|string|max:1000',
         ]);
 
-        $message = ChatMessage::create([
-            'channel_id' => $channelId,
-            'staff_id' => auth()->id(),
+        ChatMessage::create([
+            'sender_id' => Auth::guard('staff')->id(),
+            'receiver_id' => $staffId,
             'message' => $request->message,
         ]);
 
-        // Broadcast the message event (placeholder for Pusher)
-        // broadcast(new NewChatMessage($message))->toOthers();
-
-        return response()->json($message->load('staff'));
+        return back()->with('success', 'Message sent!');
     }
 
-    public function createChannel(Request $request)
+    public function sendToGeneral(Request $request)
     {
         $request->validate([
-            'name' => 'required|string',
-            'description' => 'nullable|string',
-            'is_private' => 'boolean',
+            'message' => 'required|string|max:1000',
         ]);
 
-        $channel = ChatChannel::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'is_private' => $request->is_private ?? false,
-            'created_by' => auth()->id(),
+        ChatMessage::create([
+            'sender_id' => Auth::guard('staff')->id(),
+            'receiver_id' => null,
+            'channel' => 'general',
+            'message' => $request->message,
         ]);
 
-        // Add the creator as an admin member
-        ChannelMember::create([
-            'channel_id' => $channel->id,
-            'staff_id' => auth()->id(),
-            'is_admin' => true,
-            'joined_at' => now(),
-        ]);
-
-        return redirect()->route('chat.channel.show', $channel->id);
+        return back()->with('success', 'Message sent to General channel!');
     }
 
-    public function addMember(Request $request, $channelId)
+    public function getChatView($staffId)
     {
-        $request->validate([
-            'staff_id' => 'required|exists:staffs,id',
-        ]);
+        $currentStaffId = Auth::guard('staff')->id();
+        $otherStaff = Staff::findOrFail($staffId);
+        
+        // Mark messages as read
+        ChatMessage::where('sender_id', $staffId)
+            ->where('receiver_id', $currentStaffId)
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'read_at' => now()]);
+        
+        // Get messages
+        $messages = ChatMessage::where(function($q) use ($currentStaffId, $staffId) {
+            $q->where('sender_id', $currentStaffId)->where('receiver_id', $staffId);
+        })->orWhere(function($q) use ($currentStaffId, $staffId) {
+            $q->where('sender_id', $staffId)->where('receiver_id', $currentStaffId);
+        })->with(['sender', 'receiver'])
+          ->orderBy('created_at', 'asc')
+          ->get();
+        
+        return view('chat::partials.chat-area', compact('otherStaff', 'messages'));
+    }
 
-        $member = ChannelMember::create([
-            'channel_id' => $channelId,
-            'staff_id' => $request->staff_id,
-            'joined_at' => now(),
-        ]);
+    public function getMessages(Request $request, $staffId)
+    {
+        $currentStaffId = Auth::guard('staff')->id();
+        $afterId = $request->query('after_id');
+        
+        $query = ChatMessage::where(function($q) use ($currentStaffId, $staffId) {
+            $q->where('sender_id', $currentStaffId)->where('receiver_id', $staffId);
+        })->orWhere(function($q) use ($currentStaffId, $staffId) {
+            $q->where('sender_id', $staffId)->where('receiver_id', $currentStaffId);
+        });
 
-        return response()->json($member->load('staff'));
+        if ($afterId) {
+            $query->where('id', '>', $afterId);
+        }
+
+        $messages = $query->with(['sender', 'receiver'])
+          ->orderBy('created_at', 'asc')
+          ->get();
+        
+        // Mark as read
+        if ($messages->isNotEmpty()) {
+            ChatMessage::where('sender_id', $staffId)
+                ->where('receiver_id', $currentStaffId)
+                ->where('is_read', false)
+                ->whereIn('id', $messages->pluck('id'))
+                ->update(['is_read' => true, 'read_at' => now()]);
+        }
+        
+        return response()->json($messages);
+    }
+
+    public function getGeneralMessages(Request $request)
+    {
+        $afterId = $request->query('after_id');
+        
+        $query = ChatMessage::whereNotNull('channel')
+            ->where('channel', 'general');
+
+        if ($afterId) {
+            $query->where('id', '>', $afterId);
+        }
+
+        $messages = $query->with('sender')
+          ->orderBy('created_at', 'asc')
+          ->get();
+        
+        return response()->json($messages);
     }
 }

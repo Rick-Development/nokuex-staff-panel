@@ -2,28 +2,55 @@
 
 namespace Modules\CustomerCare\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 
 class CustomerCareController extends Controller
 {
-    public function dashboard()
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
     {
-        return view('customercare::dashboard');
+        return view('customercare::index');
     }
 
-    public function crm()
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
     {
-        return view('customercare::crm.index');
+        return view('customercare::create');
     }
 
-    public function tickets()
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request) {}
+
+    /**
+     * Show the specified resource.
+     */
+    public function show($id)
     {
-        return view('customercare::tickets.index');
+        return view('customercare::show');
     }
 
-    public function disputes()
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
     {
-        return view('customercare::disputes.index');
+        return view('customercare::edit');
     }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id) {}
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id) {}
 }

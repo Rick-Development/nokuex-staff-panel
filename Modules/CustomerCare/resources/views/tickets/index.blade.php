@@ -1,262 +1,103 @@
-@extends('core::layouts.app')
-
-@section('title', 'Support Tickets')
+@extends('core::layouts.master')
 
 @section('content')
-<div class="card">
-    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <h2 style="margin: 0;">Support Tickets</h2>
-        <button onclick="showCreateTicketModal()" class="btn btn-primary">
-            <i>➕</i> Create Ticket
-        </button>
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Support Tickets</h1>
     </div>
 
-    <div class="card" style="margin-bottom: 1.5rem;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--primary-color);">{{ \Modules\CustomerCare\Entities\SupportTicket::where('status', 'open')->count() }}</div>
-                <div style="color: #666;">Open Tickets</div>
+    <!-- Filter -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form action="{{ route('staff.tickets.index') }}" method="GET" class="flex flex-wrap gap-4">
+            <div class="flex-1">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search ticket # or subject..." class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--secondary-color);">{{ \Modules\CustomerCare\Entities\SupportTicket::where('status', 'in_progress')->count() }}</div>
-                <div style="color: #666;">In Progress</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--accent-color);">{{ \Modules\CustomerCare\Entities\SupportTicket::where('status', 'resolved')->count() }}</div>
-                <div style="color: #666;">Resolved</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: #17a2b8;">{{ \Modules\CustomerCare\Entities\SupportTicket::count() }}</div>
-                <div style="color: #666;">Total Tickets</div>
-            </div>
-        </div>
-    </div>
-
-    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-        <button onclick="filterTickets('')" class="btn btn-primary btn-sm">All</button>
-        <button onclick="filterTickets('open')" class="btn btn-warning btn-sm">Open</button>
-        <button onclick="filterTickets('in_progress')" class="btn btn-info btn-sm">In Progress</button>
-        <button onclick="filterTickets('resolved')" class="btn btn-success btn-sm">Resolved</button>
-        <button onclick="filterTickets('closed')" class="btn btn-secondary btn-sm">Closed</button>
-    </div>
-
-    <div style="overflow-x: auto;">
-        <table id="tickets-table" class="table">
-            <thead>
-                <tr>
-                    <th>Ticket #</th>
-                    <th>Customer</th>
-                    <th>Subject</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Assigned To</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-        </table>
-    </div>
-</div>
-
-<!-- Create Ticket Modal -->
-<div id="createTicketModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
-    <div style="background-color: white; margin: 2% auto; padding: 2rem; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1.5rem;">
-            <h3 style="margin: 0;">Create Support Ticket</h3>
-            <button onclick="closeCreateTicketModal()" class="btn btn-warning">&times;</button>
-        </div>
-        
-        <form id="create-ticket-form">
-            @csrf
-            
-            <div class="form-group">
-                <label for="customer_id" class="form-label">Customer *</label>
-                <select name="customer_id" id="customer_id" class="form-control" required>
-                    <option value="">Select Customer</option>
-                    @foreach($customers as $customer)
-                    <option value="{{ $customer->id }}">{{ $customer->name }} ({{ $customer->email }})</option>
-                    @endforeach
+            <div class="w-40">
+                <select name="status" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Statuses</option>
+                    <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>Open</option>
+                    <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
+                    <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
                 </select>
             </div>
-            
-            <div class="form-group">
-                <label for="subject" class="form-label">Subject *</label>
-                <input type="text" name="subject" id="subject" class="form-control" required>
+            <div class="w-40">
+                <select name="priority" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Priorities</option>
+                    <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low</option>
+                    <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
+                    <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }}>High</option>
+                    <option value="urgent" {{ request('priority') == 'urgent' ? 'selected' : '' }}>Urgent</option>
+                </select>
             </div>
-            
-            <div class="form-group">
-                <label for="description" class="form-label">Description *</label>
-                <textarea name="description" id="description" class="form-control" rows="4" required></textarea>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label for="priority" class="form-label">Priority *</label>
-                    <select name="priority" id="priority" class="form-control" required>
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="assigned_to" class="form-label">Assign To</label>
-                    <select name="assigned_to" id="assigned_to" class="form-control">
-                        <option value="">Unassigned</option>
-                        @foreach($staff as $member)
-                        <option value="{{ $member->id }}">{{ $member->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-            
-            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
-                <button type="submit" class="btn btn-primary">Create Ticket</button>
-                <button type="button" onclick="closeCreateTicketModal()" class="btn btn-warning">Cancel</button>
-            </div>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Filter</button>
+            @if(request()->hasAny(['search', 'status', 'priority']))
+                <a href="{{ route('staff.tickets.index') }}" class="text-gray-600 px-4 py-2 hover:text-gray-800">Clear</a>
+            @endif
         </form>
     </div>
-</div>
 
-<!-- View Ticket Modal -->
-<div id="viewTicketModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
-    <div style="background-color: white; margin: 2% auto; padding: 2rem; border-radius: 8px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1.5rem;">
-            <h3 style="margin: 0;">Ticket Details</h3>
-            <button onclick="closeViewTicketModal()" class="btn btn-warning">&times;</button>
+    <!-- Tickets Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($tickets as $ticket)
+                <tr>
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-gray-900">#{{ $ticket->ticket_number }}</div>
+                        <div class="text-sm text-gray-500">{{ Str::limit($ticket->subject, 40) }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ $ticket->user->first_name }} {{ $ticket->user->last_name }}</div>
+                        <div class="text-sm text-gray-500">{{ $ticket->user->email }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {{ $ticket->status === 'open' ? 'bg-green-100 text-green-800' : '' }}
+                            {{ $ticket->status === 'in_progress' ? 'bg-blue-100 text-blue-800' : '' }}
+                            {{ $ticket->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : '' }}
+                            {{ $ticket->status === 'resolved' ? 'bg-gray-100 text-gray-800' : '' }}
+                            {{ $ticket->status === 'closed' ? 'bg-gray-800 text-white' : '' }}">
+                            {{ ucfirst(str_replace('_', ' ', $ticket->status)) }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {{ $ticket->priority === 'urgent' ? 'bg-red-100 text-red-800' : '' }}
+                            {{ $ticket->priority === 'high' ? 'bg-orange-100 text-orange-800' : '' }}
+                            {{ $ticket->priority === 'medium' ? 'bg-blue-100 text-blue-800' : '' }}
+                            {{ $ticket->priority === 'low' ? 'bg-gray-100 text-gray-800' : '' }}">
+                            {{ ucfirst($ticket->priority) }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ $ticket->created_at->diffForHumans() }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{{ route('staff.tickets.show', $ticket->id) }}" class="text-blue-600 hover:text-blue-900">View</a>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">No tickets found.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+        <div class="px-6 py-4 border-t border-gray-200">
+            {{ $tickets->links() }}
         </div>
-        <div id="ticket-details"></div>
     </div>
 </div>
-
-@push('scripts')
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-
-<script>
-let ticketsTable;
-let currentStatusFilter = '';
-
-$(document).ready(function() {
-    ticketsTable = $('#tickets-table').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: '{{ route("customercare.tickets") }}',
-            data: function(d) {
-                d.status = currentStatusFilter;
-            }
-        },
-        columns: [
-            { data: 'ticket_number', name: 'ticket_number' },
-            { data: 'customer.name', name: 'customer.name' },
-            { data: 'subject', name: 'subject' },
-            { data: 'priority_badge', name: 'priority', orderable: false, searchable: false },
-            { data: 'status_badge', name: 'status', orderable: false, searchable: false },
-            { data: 'assigned_to.name', name: 'assigned_to.name' },
-            { data: 'created_at', name: 'created_at' },
-            { data: 'actions', name: 'actions', orderable: false, searchable: false }
-        ],
-        language: {
-            search: "Search tickets:",
-            lengthMenu: "Show _MENU_ entries"
-        }
-    });
-});
-
-function filterTickets(status) {
-    currentStatusFilter = status;
-    ticketsTable.ajax.reload();
-}
-
-function showCreateTicketModal() {
-    document.getElementById('createTicketModal').style.display = 'block';
-}
-
-function closeCreateTicketModal() {
-    document.getElementById('createTicketModal').style.display = 'none';
-}
-
-function viewTicket(ticketId) {
-    fetch(`/customercare/tickets/${ticketId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const ticket = data.ticket;
-                
-                document.getElementById('ticket-details').innerHTML = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-                        <div>
-                            <h4>Ticket Information</h4>
-                            <p><strong>Ticket #:</strong> ${ticket.ticket_number}</p>
-                            <p><strong>Subject:</strong> ${ticket.subject}</p>
-                            <p><strong>Priority:</strong> <span class="badge badge-${ticket.priority === 'high' ? 'danger' : (ticket.priority === 'medium' ? 'warning' : 'success')}">${ticket.priority}</span></p>
-                            <p><strong>Status:</strong> <span class="badge badge-${ticket.status === 'open' ? 'primary' : (ticket.status === 'in_progress' ? 'warning' : (ticket.status === 'resolved' ? 'success' : 'secondary'))}">${ticket.status.replace('_', ' ')}</span></p>
-                        </div>
-                        <div>
-                            <h4>Assignment</h4>
-                            <p><strong>Customer:</strong> ${ticket.customer.name} (${ticket.customer.email})</p>
-                            <p><strong>Assigned To:</strong> ${ticket.assigned_to ? ticket.assigned_to.name : 'Unassigned'}</p>
-                            <p><strong>Created:</strong> ${new Date(ticket.created_at).toLocaleString()}</p>
-                            ${ticket.resolved_at ? `<p><strong>Resolved:</strong> ${new Date(ticket.resolved_at).toLocaleString()}</p>` : ''}
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h4>Description</h4>
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px;">
-                            ${ticket.description}
-                        </div>
-                    </div>
-                `;
-                
-                document.getElementById('viewTicketModal').style.display = 'block';
-            }
-        });
-}
-
-function closeViewTicketModal() {
-    document.getElementById('viewTicketModal').style.display = 'none';
-}
-
-// Create ticket form submission
-document.getElementById('create-ticket-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const btn = this.querySelector('button[type="submit"]');
-    const originalText = btn.innerHTML;
-    
-    btn.innerHTML = 'Creating...';
-    btn.disabled = true;
-    
-    fetch('{{ route("customercare.tickets.store") }}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeCreateTicketModal();
-            ticketsTable.ajax.reload();
-            this.reset();
-        } else {
-            alert('Error creating ticket: ' + (data.message || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        alert('Error creating ticket. Please try again.');
-    })
-    .finally(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
-});
-</script>
-@endpush
 @endsection

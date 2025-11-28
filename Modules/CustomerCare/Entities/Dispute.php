@@ -5,38 +5,43 @@ namespace Modules\CustomerCare\Entities;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Core\Entities\Staff;
+use App\Models\User;
 
 class Dispute extends Model
 {
     use HasFactory;
 
+    protected $table = 'staff_disputes';
+
     protected $fillable = [
         'dispute_number',
-        'customer_id',
-        'type',
-        'description',
-        'amount',
-        'status',
+        'user_id',
+        'transaction_id',
         'assigned_to',
-        'resolved_at'
+        'subject',
+        'description',
+        'status',
+        'priority',
+        'disputed_amount',
+        'resolution',
+        'resolved_at',
     ];
 
     protected $casts = [
-        'resolved_at' => 'datetime'
+        'resolved_at' => 'datetime',
+        'disputed_amount' => 'decimal:2',
     ];
 
-    public function customer()
+    public function user()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(User::class);
     }
 
-    public function assignedTo()
+    public function assignedStaff()
     {
         return $this->belongsTo(Staff::class, 'assigned_to');
     }
 
-    protected static function newFactory()
-    {
-        return \Modules\CustomerCare\Database\factories\DisputeFactory::new();
-    }
+    // Relationship to Transaction model (assuming it exists in App\Models or similar)
+    // public function transaction() { ... }
 }
