@@ -38,7 +38,10 @@
                             <div class="avatar" style="background: {{ $conversation['staff']->is_active ? 'var(--primary-color)' : '#95a5a6' }}">
                                 {{ substr($conversation['staff']->name, 0, 1) }}
                             </div>
-                            @if($conversation['staff']->is_active)
+                            @php
+                                $isOnline = $conversation['staff']->last_seen && $conversation['staff']->last_seen->diffInMinutes(now()) < 5;
+                            @endphp
+                            @if($isOnline)
                                 <div class="status-dot"></div>
                             @endif
                         </div>

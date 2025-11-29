@@ -8,37 +8,59 @@
         <div>
             <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--primary-color); margin: 0;">{{ $otherStaff->name }}</h2>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="width: 8px; height: 8px; background: #2ecc71; border-radius: 50%;"></span>
-                <span style="font-size: 0.75rem; color: #666;">{{ ucfirst($otherStaff->role ?? 'Staff') }}</span>
+                @php
+                    $isOnline = $otherStaff->last_seen && $otherStaff->last_seen->diffInMinutes(now()) < 5;
+                @endphp
+                <span style="width: 8px; height: 8px; background: {{ $isOnline ? '#2ecc71' : '#95a5a6' }}; border-radius: 50%;"></span>
+                <span style="font-size: 0.75rem; color: #666;">{{ $isOnline ? 'Online' : 'Offline' }} • {{ ucfirst($otherStaff->role ?? 'Staff') }}</span>
             </div>
         </div>
     </div>
-    <div style="display: flex; gap: 1rem;">
-        <button style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;">📞</button>
-        <button style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;">📹</button>
-        <button style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;">ℹ️</button>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+        <button style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;" class="desktop-only">📞</button>
+        <button style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;" class="desktop-only">📹</button>
+        <button style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #999;" class="desktop-only">ℹ️</button>
+        <!-- Mobile Hamburger Menu -->
+        <button onclick="toggleMobileSidebar()" class="mobile-hamburger" style="display: none; background: none; border: none; cursor: pointer; color: var(--primary-color); padding: 0.5rem;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
     </div>
 </div>
+
+<style>
+    @media (max-width: 768px) {
+        .mobile-hamburger {
+            display: block !important;
+        }
+        .desktop-only {
+            display: none !important;
+        }
+    }
+</style>
 
 <!-- Messages -->
 <div id="messagesContainer" style="flex: 1; overflow-y: auto; padding: 1.5rem; background: #f0f2f5; background-image: radial-gradient(#e1e4e8 1px, transparent 1px); background-size: 20px 20px;">
     @foreach($messages as $message)
         @if($message->sender_id == Auth::guard('staff')->id())
             <!-- Sent Message -->
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+            <div data-message-id="{{ $message->id }}" style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
                 <div style="max-width: 70%;">
                     <div style="background: linear-gradient(135deg, var(--primary-color), #3a4b7c); color: white; padding: 0.75rem 1rem; border-radius: 18px 18px 4px 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <p style="margin: 0; word-wrap: break-word; line-height: 1.5;">{{ $message->message }}</p>
                     </div>
                     <div style="text-align: right; margin-top: 0.25rem;">
                         <span style="font-size: 0.7rem; color: #999;">{{ $message->created_at->format('H:i') }}</span>
-                        <span style="font-size: 0.7rem; color: var(--primary-color);">✓✓</span>
+                        <span style="font-size: 0.7rem; color: {{ $message->is_read ? '#0084ff' : '#999' }};">✓✓</span>
                     </div>
                 </div>
             </div>
         @else
             <!-- Received Message -->
-            <div style="display: flex; justify-content: flex-start; margin-bottom: 1rem;">
+            <div data-message-id="{{ $message->id }}" style="display: flex; justify-content: flex-start; margin-bottom: 1rem;">
                 <div style="max-width: 70%;">
                     <div style="background: white; color: #333; padding: 0.75rem 1rem; border-radius: 18px 18px 18px 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                         <p style="margin: 0; word-wrap: break-word; line-height: 1.5;">{{ $message->message }}</p>
@@ -75,8 +97,11 @@
         // Store last message ID
         let lastMessageId = {{ $messages->last()->id ?? 0 }};
         
-        // Clear existing interval if any
-        if (window.chatInterval) clearInterval(window.chatInterval);
+        // Clear ALL existing intervals to prevent duplicates
+        if (window.chatInterval) {
+            clearInterval(window.chatInterval);
+            window.chatInterval = null;
+        }
         
         // Auto-refresh messages every 1 second (Real-time)
         window.chatInterval = setInterval(function() {
@@ -86,15 +111,25 @@
                     if (messages.length === 0) return;
                     
                     const container = document.getElementById('messagesContainer');
+                    if (!container) return; // Chat view might have been closed
+                    
                     const currentStaffId = {{ Auth::guard('staff')->id() }};
                     let shouldScroll = container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
                     
                     messages.forEach(message => {
-                        // Update last ID
-                        if (message.id > lastMessageId) lastMessageId = message.id;
+                        // Skip if message already exists in DOM
+                        if (document.querySelector(`[data-message-id="${message.id}"]`)) {
+                            return;
+                        }
+                        
+                        // Update last ID BEFORE adding to DOM
+                        if (message.id > lastMessageId) {
+                            lastMessageId = message.id;
+                        }
                         
                         const isSent = message.sender_id === currentStaffId;
                         const messageDiv = document.createElement('div');
+                        messageDiv.setAttribute('data-message-id', message.id); // Add unique identifier
                         messageDiv.style.display = 'flex';
                         messageDiv.style.justifyContent = isSent ? 'flex-end' : 'flex-start';
                         messageDiv.style.marginBottom = '1rem';
@@ -110,7 +145,7 @@
                                 </div>
                                 <div style="${isSent ? 'text-align: right;' : ''} margin-top: 0.25rem;">
                                     <span style="font-size: 0.7rem; color: #999;">${time}</span>
-                                    ${isSent ? '<span style="font-size: 0.7rem; color: var(--primary-color);">✓✓</span>' : ''}
+                                    ${isSent ? `<span style="font-size: 0.7rem; color: ${message.is_read ? '#0084ff' : '#999'};">✓✓</span>` : ''}
                                 </div>
                             </div>
                         `;
@@ -123,13 +158,20 @@
                     if (shouldScroll) {
                         container.scrollTop = container.scrollHeight;
                     }
+                })
+                .catch(error => {
+                    console.error('Error fetching messages:', error);
                 });
         }, 1000);
         
         // Handle form submission
         const form = document.getElementById('messageForm');
         if (form) {
-            form.addEventListener('submit', function(e) {
+            // Remove any existing listeners
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+            
+            newForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const input = document.getElementById('messageInput');
                 const message = input.value.trim();
@@ -146,11 +188,38 @@
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     }
+                }).catch(error => {
+                    console.error('Error sending message:', error);
                 });
             });
         }
     }
     
+    // Mobile sidebar toggle function
+    function toggleMobileSidebar() {
+        if (window.innerWidth <= 768) {
+            // Use the same function as the back button
+            showMobileList();
+        }
+    }
+    
+    // Mobile navigation helper (matches index.blade.php)
+    function showMobileList() {
+        if (window.innerWidth <= 768) {
+            const chatMain = document.getElementById('chatMainArea');
+            if (chatMain) {
+                chatMain.classList.remove('active');
+            }
+        }
+    }
+    
     // Run init
     initChat();
+    
+    // Clean up interval when navigating away
+    window.addEventListener('beforeunload', function() {
+        if (window.chatInterval) {
+            clearInterval(window.chatInterval);
+        }
+    });
 </script>
