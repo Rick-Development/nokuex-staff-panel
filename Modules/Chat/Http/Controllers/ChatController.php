@@ -186,4 +186,28 @@ class ChatController extends Controller
         
         return response()->json($messages);
     }
+
+    public function checkNewMessages(Request $request)
+    {
+        $currentStaffId = Auth::guard('staff')->id();
+        
+        // Get unread counts for all 1-to-1 conversations
+        $unreadCounts = ChatMessage::select('sender_id', DB::raw('count(*) as count'))
+            ->where('receiver_id', $currentStaffId)
+            ->where('is_read', false)
+            ->groupBy('sender_id')
+            ->pluck('count', 'sender_id');
+
+        // Get last message for each conversation (to update preview)
+        // This is a bit heavy, so maybe we only return if there are changes?
+        // For now, let's return unread counts and let the frontend handle the "new message" indicator
+        
+        // Also check for new General messages count (if we want to show a badge for General)
+        // For General, we track by ID on frontend, but here we can just return total count since last check?
+        // Actually, frontend handles General polling separately.
+        
+        return response()->json([
+            'unread_counts' => $unreadCounts
+        ]);
+    }
 }

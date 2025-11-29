@@ -1,5 +1,5 @@
 <!-- Chat Header -->
-<div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; background: white; z-index: 10;">
+<div style="padding: 1rem 1.5rem; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; background: white; z-index: 10; flex-shrink: 0;">
     <div style="display: flex; align-items: center; gap: 1rem;">
         <button onclick="document.querySelector('.chat-sidebar').style.display='flex'; document.querySelector('.chat-main').style.display='none';" class="mobile-back" style="display: none; background: none; border: none; color: var(--primary-color); font-size: 1.5rem; margin-right: 0.5rem; cursor: pointer;">&larr;</button>
         <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">

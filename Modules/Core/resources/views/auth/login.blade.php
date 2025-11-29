@@ -84,11 +84,11 @@
 
         <!-- Test Credentials -->
         <div style="margin-top: 2rem; padding: 1.5rem; background-color: #f5f5f5; border-radius: 4px; border-left: 4px solid var(--accent-color);">
-            <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color); margin-bottom: 1rem; text-transform: uppercase;">Test Credentials (All use password: password)</h3>
+            <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--primary-color); margin-bottom: 1rem; text-transform: lowercase;">Test Credentials (All use password: password)</h3>
             <div style="font-size: 0.875rem; line-height: 1.8; color: #666;">
-                <div style="margin-bottom: 0.5rem;">
+                <!-- <div style="margin-bottom: 0.5rem;">
                     <strong style="color: var(--primary-color);">Admin:</strong> admin@nokuex.com
-                </div>
+                </div> -->
                 <div style="margin-bottom: 0.5rem;">
                     <strong style="color: var(--secondary-color);">Customer Care:</strong> amaka.cc@nokuex.com
                 </div>

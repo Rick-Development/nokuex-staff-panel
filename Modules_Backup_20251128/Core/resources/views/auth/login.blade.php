@@ -163,7 +163,7 @@
             <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
                 <div style="font-size: 0.8rem; color: #666;">
                     Demo Credentials:<br>
-                    admin@nokuex.com / password<br>
+                    <!-- admin@nokuex.com / password<br> -->
                     manager@nokuex.com / password<br>
                     staff@nokuex.com / password
                 </div>

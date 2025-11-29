@@ -53,30 +53,55 @@
             color: white;
             border-left-color: var(--accent-color);
         }
-        .mobile-menu-btn {
-            display: none;
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1001;
-            background-color: var(--primary-color);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
+                top: 0; /* Sidebar sits below top bar if needed, or covers it. Let's make it cover. */
+                z-index: 2000;
             }
             .sidebar.active {
                 transform: translateX(0);
             }
             .main-content {
                 margin-left: 0;
+                margin-top: 60px; /* Height of top bar */
+            }
+            .mobile-top-bar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 60px;
+                background-color: var(--primary-color);
+                color: white;
+                padding: 0 1rem;
+                z-index: 1500;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             .mobile-menu-btn {
-                display: block;
+                display: flex;
+                background: none;
+                border: none;
+                color: white;
+                padding: 0;
+                cursor: pointer;
+            }
+            .mobile-role-label {
+                font-weight: 600;
+                font-size: 1rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+        }
+        
+        /* Hide top bar on desktop */
+        @media (min-width: 769px) {
+            .mobile-top-bar {
+                display: none;
             }
         }
     </style>
@@ -85,8 +110,29 @@
 </head>
 <body>
     @if(Auth::guard('staff')->check())
-        <!-- Mobile Menu Button -->
-        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰ Menu</button>
+        <!-- Mobile Top Bar -->
+        <div class="mobile-top-bar">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            
+            @php
+                $userRole = Auth::guard('staff')->user()->role ?? 'staff';
+                $roleLabels = [
+                    'admin' => 'Administrator',
+                    'customer_care' => 'Customer Care',
+                    'finance' => 'Finance',
+                    'compliance' => 'Compliance',
+                    'sales' => 'Sales',
+                    'staff' => 'Staff',
+                ];
+            @endphp
+            <div class="mobile-role-label">
+                {{ $roleLabels[$userRole] ?? 'Staff' }}
+            </div>
+            
+            <div style="width: 24px;"></div> <!-- Spacer for centering -->
+        </div>
 
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
